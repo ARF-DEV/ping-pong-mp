@@ -51,6 +51,14 @@ func (b *Ball) Update(scene *Scene) {
 
 }
 
+func (b *Ball) UpdateFromInput(in int32) {}
+
+func (b *Ball) ToActorWrapper() ActorWrapper {
+	return ActorWrapper{
+		Type:  "ball",
+		Actor: b,
+	}
+}
 func getAreaTop() rl.Vector2 {
 	mWidth := rl.GetScreenWidth()
 	mHeight := rl.GetScreenHeight()

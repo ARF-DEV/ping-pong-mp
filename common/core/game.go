@@ -1,7 +1,11 @@
 package core
 
 import (
+	"encoding/json"
+	"fmt"
+	"log"
 	"net"
+	"strings"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
@@ -22,9 +26,17 @@ type Scene struct {
 	conn   net.Conn
 }
 
-func CreateGame() *Scene {
+func CreateGame(t string) *Scene {
 	mWidth := rl.GetScreenWidth()
+	if mWidth == 0 {
+		mWidth = int(AreaWidth)
+	}
+	fmt.Println(mWidth)
 	mHeight := rl.GetScreenHeight()
+	if mHeight == 0 {
+		mHeight = int(AreaHeight)
+	}
+	fmt.Println(mHeight)
 	mCenterX := mWidth / 2
 	mCenterY := mHeight / 2
 	areaTopX := float32(mCenterX) - AreaWidth/2
@@ -61,11 +73,14 @@ func CreateGame() *Scene {
 	}
 	s.AddActor(&p1, &p2, &ball)
 
-	// var err error
-	// s.conn, err = net.Dial("tcp", ":8080")
-	// if err != nil {
-	// 	panic(err)
-	// }
+	if t == "client" {
+		var err error
+		s.conn, err = net.Dial("tcp", ":8080")
+		if err != nil {
+			panic(err)
+		}
+		go ProcessConn(s.conn, s)
+	}
 
 	return s
 }
@@ -84,4 +99,86 @@ func (g *Scene) Draw() {
 	for i := range g.Actors {
 		g.Actors[i].Draw()
 	}
+}
+func (g *Scene) UpdateFromInput(in int32) {
+	for i := range g.Actors {
+		g.Actors[i].UpdateFromInput(in)
+	}
+	// utils.PrintToJSON(g.Actors)
+}
+
+type InputMessage struct {
+	Input int32
+}
+
+func ProcessConn(conn net.Conn, scene *Scene) {
+	for {
+		data := make([]byte, 1024)
+		d := ServerResponse{}
+		n, err := conn.Read(data)
+		if err != nil {
+			fmt.Println(err)
+		}
+		data = []byte(strings.TrimSpace(string(data)))
+		if err := json.Unmarshal(data[:n], &d); err != nil {
+			continue
+		}
+		state := ClientSceneState{}
+		for _, a := range d.Actors {
+			aMap := a.(map[string]interface{})
+			switch aMap["Type"] {
+			case "player":
+				dst := Player{}
+				src := aMap["Actor"]
+				jsonData, err := json.Marshal(src)
+				if err != nil {
+					panic(err)
+				}
+				if err = json.Unmarshal(jsonData, &dst); err != nil {
+					panic(err)
+				}
+				state.Actors = append(state.Actors, &dst)
+			case "ball":
+				dst := Ball{}
+				src := aMap["Actor"]
+				jsonData, err := json.Marshal(src)
+				if err != nil {
+					panic(err)
+				}
+				if err = json.Unmarshal(jsonData, &dst); err != nil {
+					panic(err)
+				}
+				state.Actors = append(state.Actors, &dst)
+			default:
+				log.Println("not supported")
+			}
+		}
+		state.ApplyToScene(scene)
+	}
+}
+
+type ServerResponse struct {
+	Actors []interface{}
+}
+type ServerSceneState struct {
+	Actors []ActorWrapper
+}
+type ActorWrapper struct {
+	Type  string
+	Actor Actor
+}
+type ClientSceneState struct {
+	Actors []Actor
+}
+
+func (s *ClientSceneState) ApplyToScene(scene *Scene) {
+	scene.Actors = s.Actors
+}
+
+func (g *Scene) GetSceneState() ServerSceneState {
+	s := ServerSceneState{}
+	for _, a := range g.Actors {
+		s.Actors = append(s.Actors, a.ToActorWrapper())
+	}
+	return s
 }

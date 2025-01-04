@@ -1,28 +1,16 @@
 package main
 
 import (
-	"net"
-
 	"github.com/ARF-DEV/ping-pong-mp/common/core"
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
 func main() {
-	rl.InitWindow(1000, 500, "raylib [core] example - basic window")
+	rl.InitWindow(800, 450, "raylib [core] example - basic window")
 	defer rl.CloseWindow()
 
-	conn, err := net.Dial("tcp", ":8080")
-	if err != nil {
-		panic(err)
-	}
-	data := []byte("halloww")
-	_, err = conn.Write(data)
-	if err != nil {
-		panic(err)
-	}
-
 	rl.SetTargetFPS(60)
-	game := core.CreateGame()
+	game := core.CreateGame("client")
 	for !rl.WindowShouldClose() {
 		rl.BeginDrawing()
 		game.Update()
