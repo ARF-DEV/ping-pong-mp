@@ -38,7 +38,7 @@ func (p *Player) Update(scene *Scene) {
 }
 
 func (p *Player) UpdateFromInput(in int32) {
-	var dt float32 = float32(1) / 60
+	var dt float32 = float32(1) / network.SERVER_TICK
 	if in == p.UpKey {
 		p.Rect.Y -= PadSpeed * dt
 	}

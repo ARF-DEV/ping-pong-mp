@@ -7,9 +7,13 @@ import (
 
 func Send(dst net.Conn, data any) {
 	payload, _ := json.Marshal(data)
-	dst.Write(payload)
+	dst.Write(append(payload, '\n'))
 }
 
 type InputMessage struct {
 	Input int32
 }
+
+const (
+	SERVER_TICK = 60
+)

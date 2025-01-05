@@ -1,17 +1,14 @@
 package internal
 
 import (
-	"bufio"
 	"encoding/json"
+	"fmt"
 	"net"
+	"strings"
 	"time"
 
 	"github.com/ARF-DEV/ping-pong-mp/common/core"
 	"github.com/ARF-DEV/ping-pong-mp/common/network"
-)
-
-const (
-	SERVER_TICK = 33
 )
 
 type Server struct {
@@ -30,47 +27,54 @@ func NewServer(conn net.Conn) *Server {
 }
 
 func (s *Server) ProcessConn() {
-	b := bufio.NewReader(s.conn)
+	// b := bufio.NewReader(s.conn)
 	timer := time.NewTimer(1 * time.Minute)
-
+	i := 0
 ExitLoop:
 	for {
 		select {
 		case <-timer.C:
+			fmt.Println("test a")
 			break ExitLoop
 		default:
-			for {
-				d := network.InputMessage{}
-				str, err := b.ReadString('\n')
-				if err != nil {
-					break
-				}
-				time.Sleep(100 * time.Millisecond) // simulate travel time between server and client
-				json.Unmarshal([]byte(str), &d)
-				s.q <- d
-				timer.Reset(1 * time.Minute)
+			i++
+			b := make([]byte, 1024)
+			n, err := s.conn.Read(b)
+			if err != nil {
+				continue
 			}
+			ins := s.getInputMsg(b[:n])
+			fmt.Println(string(b[:n]))
+			for _, in := range ins {
+				s.q <- in
+			}
+			timer.Reset(1 * time.Minute)
 		}
 	}
+	fmt.Println("waduh")
 }
 
 func (s *Server) ProcessInput() {
-	tick := time.NewTicker(1 / SERVER_TICK)
+	tick := time.NewTicker((1 * time.Second) / network.SERVER_TICK)
 	timer := time.NewTimer(1 * time.Minute)
 OuterLoop:
 	for {
 		select {
 		case <-tick.C:
+			fmt.Println("lol")
+			s.scene.UpdateFromNonInput()
 		InnerLoop:
 			for {
 				select {
 				case in := <-s.q:
+					fmt.Println(in)
 					s.scene.UpdateFromInput(in.Input)
 				default:
 					break InnerLoop
 				}
 			}
 			state := s.scene.GetSceneState()
+			// utils.PrintToJSON(state)
 			network.Send(s.conn, state)
 			timer.Reset(1 * time.Minute)
 
@@ -78,4 +82,16 @@ OuterLoop:
 			break OuterLoop
 		}
 	}
+}
+
+func (s *Server) getInputMsg(buf []byte) []network.InputMessage {
+	res := []network.InputMessage{}
+	splitStr := strings.Split(string(buf), "\n")
+	for _, str := range splitStr {
+		msg := network.InputMessage{}
+		json.Unmarshal([]byte(str), &msg)
+		res = append(res, msg)
+
+	}
+	return res
 }

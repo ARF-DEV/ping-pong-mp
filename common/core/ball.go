@@ -1,6 +1,7 @@
 package core
 
 import (
+	"github.com/ARF-DEV/ping-pong-mp/common/network"
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
@@ -16,7 +17,8 @@ func (b *Ball) Draw() {
 }
 
 func (b *Ball) Update(scene *Scene) {
-	dt := rl.GetFrameTime()
+	// TODO: find a way to unified this dt
+	dt := float32(1) / network.SERVER_TICK
 	b.Pos = rl.Vector2Add(b.Pos, rl.Vector2Scale(b.Dir, BallSpeed*dt))
 	areaTop := getAreaTop()
 	if b.Pos.X+b.Rad >= areaTop.X+AreaWidth {
@@ -61,7 +63,15 @@ func (b *Ball) ToActorWrapper() ActorWrapper {
 }
 func getAreaTop() rl.Vector2 {
 	mWidth := rl.GetScreenWidth()
+	if mWidth == 0 {
+		mWidth = int(AreaWidth)
+	}
+	// fmt.Println(mWidth)
 	mHeight := rl.GetScreenHeight()
+	if mHeight == 0 {
+		mHeight = int(AreaHeight)
+	}
+	// fmt.Println(mHeight)
 	mCenterX := mWidth / 2
 	mCenterY := mHeight / 2
 	areaTopX := float32(mCenterX) - AreaWidth/2

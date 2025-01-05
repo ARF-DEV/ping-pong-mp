@@ -6,12 +6,12 @@ import (
 
 type Actor interface {
 	Update(*Scene)
-	UpdateFromInput(input int32)
 	ToActorWrapper() ActorWrapper
 	Draw()
 }
 
 type PadActor interface {
 	Actor
+	UpdateFromInput(input int32)
 	GetRect() rl.Rectangle
 }

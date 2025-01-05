@@ -103,11 +103,24 @@ func (g *Scene) Draw() {
 }
 func (g *Scene) UpdateFromInput(in int32) {
 	for i := range g.Actors {
-		g.Actors[i].UpdateFromInput(in)
+		a, ok := g.Actors[i].(PadActor)
+		if !ok {
+			continue
+		}
+		a.UpdateFromInput(in)
 	}
 	// utils.PrintToJSON(g.Actors)
 }
 
+func (g *Scene) UpdateFromNonInput() {
+	for i := range g.Actors {
+		_, ok := g.Actors[i].(PadActor)
+		if !ok {
+			g.Actors[i].Update(g)
+		}
+	}
+
+}
 func ProcessConn(conn net.Conn, scene *Scene) {
 	for {
 		data := make([]byte, 1024)
