@@ -22,8 +22,9 @@ type Scene struct {
 	// p1   *Player
 	// p2   *Player
 	// ball *Ball
-	Actors []Actor
-	conn   net.Conn
+	Actors   []Actor
+	conn     net.Conn
+	snapShot []ClientSceneState
 }
 
 func CreateGame(t string) *Scene {
@@ -105,10 +106,6 @@ func (g *Scene) UpdateFromInput(in int32) {
 		g.Actors[i].UpdateFromInput(in)
 	}
 	// utils.PrintToJSON(g.Actors)
-}
-
-type InputMessage struct {
-	Input int32
 }
 
 func ProcessConn(conn net.Conn, scene *Scene) {

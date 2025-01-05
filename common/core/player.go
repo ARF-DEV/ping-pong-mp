@@ -1,8 +1,7 @@
 package core
 
 import (
-	"encoding/json"
-
+	"github.com/ARF-DEV/ping-pong-mp/common/network"
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
@@ -14,27 +13,26 @@ type Player struct {
 }
 
 func (p *Player) Update(scene *Scene) {
-	inputMsg := InputMessage{}
+	inputMsg := network.InputMessage{}
 	pressed := false
 	dt := rl.GetFrameTime()
 	if rl.IsKeyDown(p.UpKey) {
 		p.Rect.Y -= PadSpeed * dt
 		pressed = true
-		inputMsg = InputMessage{
+		inputMsg = network.InputMessage{
 			Input: p.UpKey,
 		}
 	}
 	if rl.IsKeyDown(p.DownKey) {
 		p.Rect.Y += PadSpeed * dt
 		pressed = true
-		inputMsg = InputMessage{
+		inputMsg = network.InputMessage{
 			Input: p.DownKey,
 		}
 	}
 
 	if pressed {
-		data, _ := json.Marshal(inputMsg)
-		scene.conn.Write(append(data, '\n'))
+		network.Send(scene.conn, inputMsg)
 	}
 
 }

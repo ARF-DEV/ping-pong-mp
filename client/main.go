@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+
 	"github.com/ARF-DEV/ping-pong-mp/common/core"
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
@@ -10,6 +12,7 @@ func main() {
 	defer rl.CloseWindow()
 
 	rl.SetTargetFPS(60)
+	fmt.Println("woakdoakd")
 	game := core.CreateGame("client")
 	for !rl.WindowShouldClose() {
 		rl.BeginDrawing()
