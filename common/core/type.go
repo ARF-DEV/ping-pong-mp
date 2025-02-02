@@ -7,7 +7,12 @@ import (
 type Actor interface {
 	Update(*Scene)
 	ToActorWrapper() ActorWrapper
+	GetPos() rl.Vector2
 	Draw()
+}
+
+type SnapShooter[T any] interface {
+	GetSnapShot() T
 }
 
 type PadActor interface {

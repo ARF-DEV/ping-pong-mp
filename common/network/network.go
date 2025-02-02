@@ -11,6 +11,7 @@ func Send(dst net.Conn, data any) {
 }
 
 type InputMessage struct {
+	Tick  int32
 	Input int32
 }
 

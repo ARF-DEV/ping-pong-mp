@@ -6,6 +6,6 @@ import (
 )
 
 func PrintToJSON(val any) {
-	data, _ := json.Marshal(val)
+	data, _ := json.MarshalIndent(val, "", "\t")
 	fmt.Println(string(data))
 }

@@ -15,6 +15,7 @@ type Server struct {
 	scene *core.Scene
 	conn  net.Conn
 	q     chan network.InputMessage
+	t     int32
 }
 
 func NewServer(conn net.Conn) *Server {
@@ -61,22 +62,31 @@ OuterLoop:
 	for {
 		select {
 		case <-tick.C:
-			fmt.Println("lol")
 			s.scene.UpdateFromNonInput()
 		InnerLoop:
 			for {
 				select {
 				case in := <-s.q:
-					fmt.Println(in)
 					s.scene.UpdateFromInput(in.Input)
+					fmt.Println("client tick: ", in.Tick)
+					// TBD: should s.t++ be here also??
+					s.t++
+					break InnerLoop
 				default:
 					break InnerLoop
 				}
 			}
-			state := s.scene.GetSceneState()
-			// utils.PrintToJSON(state)
+			state := s.scene.GetServerSceneState()
+			state.Tick = s.t
+			fmt.Println("server tick: ", s.t)
+			// utils.PrintToJSON(state.Actors)
 			network.Send(s.conn, state)
 			timer.Reset(1 * time.Minute)
+			s.t++
+			// if s.t == 50 {
+			// 	panic("adkaowdk")
+			// }
+			// panic("awodawodk")
 
 		case <-timer.C:
 			break OuterLoop

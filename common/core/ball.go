@@ -37,7 +37,7 @@ func (b *Ball) Update(scene *Scene) {
 		b.Pos.Y = areaTop.Y + b.Rad
 		b.Dir.Y *= -1
 	}
-
+	// utils.PrintToJSON(b.Pos)
 	for i := range scene.Actors {
 		pad, ok := scene.Actors[i].(PadActor)
 		if !ok {
@@ -61,6 +61,15 @@ func (b *Ball) ToActorWrapper() ActorWrapper {
 		Actor: b,
 	}
 }
+
+func (b *Ball) GetPos() rl.Vector2 {
+	return b.Pos
+}
+
+func (b *Ball) GetSnapShot() Ball {
+	return *b
+}
+
 func getAreaTop() rl.Vector2 {
 	mWidth := rl.GetScreenWidth()
 	if mWidth == 0 {

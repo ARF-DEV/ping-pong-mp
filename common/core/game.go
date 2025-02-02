@@ -7,6 +7,8 @@ import (
 	"net"
 	"strings"
 
+	"github.com/ARF-DEV/ping-pong-mp/common/network"
+	"github.com/ARF-DEV/ping-pong-mp/utils"
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
@@ -22,9 +24,11 @@ type Scene struct {
 	// p1   *Player
 	// p2   *Player
 	// ball *Ball
-	Actors   []Actor
-	conn     net.Conn
-	snapShot []ClientSceneState
+	Actors        []Actor
+	conn          net.Conn
+	snapShot      [network.SERVER_TICK]ClientSceneState
+	tick          int32
+	curPressedKey []int32
 }
 
 func CreateGame(t string) *Scene {
@@ -70,7 +74,9 @@ func CreateGame(t string) *Scene {
 	}
 
 	s := &Scene{
-		Area: rl.NewRectangle(areaTopX, areaTopY, AreaWidth, AreaHeight),
+		Area:          rl.NewRectangle(areaTopX, areaTopY, AreaWidth, AreaHeight),
+		snapShot:      [network.SERVER_TICK]ClientSceneState{},
+		curPressedKey: []int32{},
 	}
 	s.AddActor(&p1, &p2, &ball)
 
@@ -93,6 +99,13 @@ func (g *Scene) Update() {
 	for i := range g.Actors {
 		g.Actors[i].Update(g)
 	}
+	curTick := g.tick % network.SERVER_TICK
+	g.snapShot[curTick] = g.GetClientSceneState()
+	g.tick++
+	// utils.PrintToJSON(g.GetClientSceneState())
+	// fmt.Println("adijawidjaL ", curTick)
+	// utils.PrintToJSON(g.snapShot[:3])
+	// time.Sleep(400 * time.Millisecond)
 }
 
 func (g *Scene) Draw() {
@@ -163,14 +176,17 @@ func ProcessConn(conn net.Conn, scene *Scene) {
 				log.Println("not supported")
 			}
 		}
-		state.ApplyToScene(scene)
+		// utils.PrintToJSON(d)
+		state.ApplyToScene(scene, d.Tick)
 	}
 }
 
 type ServerResponse struct {
+	Tick   int32
 	Actors []interface{}
 }
 type ServerSceneState struct {
+	Tick   int32
 	Actors []ActorWrapper
 }
 type ActorWrapper struct {
@@ -178,17 +194,88 @@ type ActorWrapper struct {
 	Actor Actor
 }
 type ClientSceneState struct {
-	Actors []Actor
+	PlayerInputs []int32
+	Actors       []Actor
 }
 
-func (s *ClientSceneState) ApplyToScene(scene *Scene) {
-	scene.Actors = s.Actors
+func (s *ClientSceneState) CompareTo(right ClientSceneState) bool {
+	for i := range s.Actors {
+		fmt.Printf("%T, %T\n", s.Actors[i], right.Actors[i])
+		clientPos := s.Actors[i].GetPos()
+		serverPos := right.Actors[i].GetPos()
+		l := rl.Vector2Length(rl.Vector2Subtract(serverPos, clientPos))
+		// absolute
+		utils.PrintToJSON(serverPos)
+		utils.PrintToJSON(clientPos)
+		if l < 0 {
+			l *= -1
+		}
+		fmt.Println(l)
+		if l < 0.0000001 {
+			continue
+		} else {
+			return false
+		}
+	}
+	return true
+
 }
 
-func (g *Scene) GetSceneState() ServerSceneState {
+func (s *ClientSceneState) ApplyToScene(scene *Scene, tick int32) {
+	fmt.Println(tick, scene.tick)
+	// fmt.Println()
+	// scene.Actors = s.Actors
+	// fmt.Println(tick)
+	utils.PrintToJSON(scene.snapShot[:tick%network.SERVER_TICK+1])
+	ss := scene.snapShot[tick%network.SERVER_TICK]
+	// utils.PrintToJSON(ss)
+	// utils.PrintToJSON(scene.snapShot[:3])
+	// for i := range scene.snapShot {
+	// 	utils.PrintToJSON(scene.snapShot[i])
+	// 	fmt.Println()
+	// 	fmt.Println()
+	// }
+	// panic("oakdoawkd")
+	if s.CompareTo(ss) {
+		// if correct then no need for correction
+		return
+	}
+	fmt.Println("correction")
+	// panic("apwokdawodk")
+	// f
+}
+
+func (g *Scene) GetServerSceneState() ServerSceneState {
 	s := ServerSceneState{}
 	for _, a := range g.Actors {
 		s.Actors = append(s.Actors, a.ToActorWrapper())
 	}
+	return s
+}
+
+func (g *Scene) GetClientSceneState() ClientSceneState {
+	s := ClientSceneState{}
+	s.PlayerInputs = append(s.PlayerInputs, g.curPressedKey...)
+	// s.Actors = append(s.Actors, ctors...)
+	// copy(s.Actors, g.Actors)
+	// utils.PrintToJSON(s)
+	for _, act := range g.Actors {
+		switch act.(type) {
+		case *Player:
+			ss, ok := act.(SnapShooter[Player])
+			if ok {
+				p := ss.GetSnapShot()
+				s.Actors = append(s.Actors, &p)
+			}
+		case *Ball:
+			ss, ok := act.(SnapShooter[Ball])
+			if ok {
+				p := ss.GetSnapShot()
+				s.Actors = append(s.Actors, &p)
+			}
+		}
+
+	}
+	g.curPressedKey = []int32{}
 	return s
 }

@@ -15,11 +15,12 @@ type Player struct {
 func (p *Player) Update(scene *Scene) {
 	inputMsg := network.InputMessage{}
 	pressed := false
-	dt := rl.GetFrameTime()
+	dt := float32(1) / network.SERVER_TICK
 	if rl.IsKeyDown(p.UpKey) {
 		p.Rect.Y -= PadSpeed * dt
 		pressed = true
 		inputMsg = network.InputMessage{
+			Tick:  scene.tick,
 			Input: p.UpKey,
 		}
 	}
@@ -27,14 +28,20 @@ func (p *Player) Update(scene *Scene) {
 		p.Rect.Y += PadSpeed * dt
 		pressed = true
 		inputMsg = network.InputMessage{
+			Tick:  scene.tick,
 			Input: p.DownKey,
 		}
 	}
 
 	if pressed {
+		scene.curPressedKey = append(scene.curPressedKey, inputMsg.Input)
 		network.Send(scene.conn, inputMsg)
 	}
 
+}
+
+func (p *Player) GetSnapShot() Player {
+	return *p
 }
 
 func (p *Player) UpdateFromInput(in int32) {
@@ -52,6 +59,9 @@ func (p *Player) ToActorWrapper() ActorWrapper {
 		Actor: p,
 	}
 }
+func (p *Player) GetPos() rl.Vector2 {
+	return rl.Vector2{X: p.Rect.X, Y: p.Rect.Y}
+}
 
 func (p *Player) Draw() {
 	pRect := p.Rect.ToInt32()
@@ -60,8 +70,4 @@ func (p *Player) Draw() {
 
 func (p *Player) GetRect() rl.Rectangle {
 	return p.Rect
-}
-
-func (p *Player) GetSnapShot() Player {
-	return *p
 }
